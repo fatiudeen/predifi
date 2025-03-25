@@ -1,24 +1,31 @@
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts for Cairo ^1.0.0
 #[starknet::contract]
 mod PredifiToken {
     use starknet::ContractAddress;
-    // Import OpenZeppelin ERC20 components
-    use openzeppelin::token::erc20::ERC20Component;
+    use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
+    use core::num::traits::Zero;
+    use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     
     // Include the ERC20 component
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     
-    // Implement the ERC20 interfaces
+    // Implement the ERC20 interfaces by embedding them in the contract's ABI
     #[abi(embed_v0)]
-    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
-    #[abi(embed_v0)]
-    impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
-    // Internal implementation for minting
-    impl InternalImpl = ERC20Component::InternalImpl<ContractState>;
+    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    
+    // Internal implementation for token operations
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+    
+    // Implement the empty hooks implementation (required for v1.0.0)
+    impl ERC20HooksImpl = ERC20HooksEmptyImpl<ContractState>;
     
     #[storage]
     struct Storage {
         #[substorage(v0)]
-        erc20: ERC20Component::Storage
+        erc20: ERC20Component::Storage,
+        // Decimal units for the token
+        decimal_units: u8
     }
     
     #[event]
@@ -34,83 +41,25 @@ mod PredifiToken {
         initial_supply: u256,
         recipient: ContractAddress
     ) {
-        let name = 'Predifi';
-        let symbol = 'PDFI';
-        let decimals = 18_u8;
+        // Ensure the recipient address is valid
+        assert!(!recipient.is_zero(), "Recipient cannot be the zero address");
         
-        // Initialize the ERC20 token
-        self.erc20.initializer(name, symbol, decimals);
+        // Initialize the ERC20 token with name and symbol
+        let name = "Predifi";  // Will be converted to ByteArray by the initializer
+        let symbol = "PDFI";   // Will be converted to ByteArray by the initializer
+        
+        self.erc20.initializer(name, symbol);
+        
+        // Set the decimals value in storage
+        self.decimal_units.write(18);
         
         // Mint the initial supply to the recipient
-        self.erc20._mint(recipient, initial_supply);
+        self.erc20.mint(recipient, initial_supply);
     }
 
-    //
-    // External functions
-    //
-
-    #[external(v0)]
-    fn name(self: @ContractState) -> felt252 {
-        self.erc20.name()
-    }
-
-    #[external(v0)]
-    fn symbol(self: @ContractState) -> felt252 {
-        self.erc20.symbol()
-    }
-
-    #[external(v0)]
-    fn decimals(self: @ContractState) -> u8 {
-        self.erc20.decimals()
-    }
-
-    #[external(v0)]
-    fn total_supply(self: @ContractState) -> u256 {
-        self.erc20.total_supply()
-    }
-
-    #[external(v0)]
-    fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
-        self.erc20.balance_of(account)
-    }
-
-    #[external(v0)]
-    fn allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
-        self.erc20.allowance(owner, spender)
-    }
-
-    #[external(v0)]
-    fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
-        self.erc20.transfer(recipient, amount)
-    }
-
-    #[external(v0)]
-    fn transfer_from(
-        ref self: ContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
-    ) -> bool {
-        self.erc20.transfer_from(sender, recipient, amount)
-    }
-
-    #[external(v0)]
-    fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) -> bool {
-        self.erc20.approve(spender, amount)
-    }
-
-    //
-    // Additional functions (optional)
-    //
-    
-    #[external(v0)]
-    fn increase_allowance(
-        ref self: ContractState, spender: ContractAddress, added_value: u256
-    ) -> bool {
-        self.erc20.increase_allowance(spender, added_value)
-    }
-
-    #[external(v0)]
-    fn decrease_allowance(
-        ref self: ContractState, spender: ContractAddress, subtracted_value: u256
-    ) -> bool {
-        self.erc20.decrease_allowance(spender, subtracted_value)
+    // External function for custom access to decimals
+    #[abi(embed_v0)]
+    fn get_decimals(self: @ContractState) -> u8 {
+        self.decimal_units.read()
     }
 } 
