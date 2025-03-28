@@ -2,10 +2,10 @@
 // Compatible with OpenZeppelin Contracts for Cairo ^1.0.0
 #[starknet::contract]
 mod PredifiToken {
-    use starknet::ContractAddress;
-    use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
     use core::num::traits::Zero;
     use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
+    use starknet::ContractAddress;
 
     // Include the ERC20 component
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);

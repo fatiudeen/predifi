@@ -1,17 +1,16 @@
 #[cfg(test)]
 mod predifi_token_tests {
-    use starknet::ContractAddress;
-    use starknet::contract_address_const;
     use core::traits::Into;
+
+    // Import OpenZeppelin ERC20 interfaces for interacting with our token
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     // Import snforge_std for declaring and deploying
     use snforge_std::{
         ContractClassTrait, DeclareResultTrait, declare, start_cheat_caller_address,
         stop_cheat_caller_address,
     };
-
-    // Import OpenZeppelin ERC20 interfaces for interacting with our token
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::{ContractAddress, contract_address_const};
 
     // Custom interface for get_decimals method that matches the contract
     #[starknet::interface]
